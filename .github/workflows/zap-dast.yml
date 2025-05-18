@@ -1,0 +1,39 @@
+name: ZAP DAST Scan
+
+on:
+  workflow_dispatch:  # Trigger manually
+  schedule:
+    - cron: '0 1 * * 0'  # Weekly scan
+
+jobs:
+  zap_scan:
+    runs-on: ubuntu-latest
+
+    services:
+      web:
+        image: node:22
+        ports:
+          - 3000:3000
+        options: >-
+          --health-cmd="curl --fail http://localhost:3000/ || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+        volumes:
+          - ./:/app
+        env:
+          NODE_ENV: production
+        steps:
+          - run: |
+              cd /app
+              npm ci
+              npx prisma generate
+              npm run build  # if you build
+              npm start      # or `npm run dev` for dev mode
+
+    steps:
+    - name: ZAP Baseline Scan
+      uses: zaproxy/action-baseline@v0.10.0
+      with:
+        target: 'http://localhost:3000'
+        cmd_options: '-t 120 -x zap-report.xml -r zap-report.html'
