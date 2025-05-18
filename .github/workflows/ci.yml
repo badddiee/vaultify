@@ -1,4 +1,5 @@
-name: Vaultify CI
+# .github/workflows/ci.yml
+name: CI
 
 on:
   push:
@@ -7,20 +8,32 @@ on:
     branches: [ main ]
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22.15.1'
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
 
-      - name: Install dependencies
-        run: npm install
+    - name: Install dependencies
+      run: npm ci
 
-      - name: Build TypeScript
-        run: npm run build
+    - name: Generate Prisma client
+      run: npx prisma generate
+
+    - name: TypeScript compile check
+      run: npx tsc --noEmit
+
+    - name: Run tests
+      run: npm test
+    
+    - name: Run npm audit
+      run: npm audit --audit-level=moderate
+
+    - name: Generate SBOM
+      run: cyclonedx-bom -o sbom.xml
